@@ -1,0 +1,91 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": 900,
+  "height": 600,
+  "title": "Major Disaster Events in Australia",
+  "params": [
+    {
+      "name": "Zoom",
+      "value": 750,
+      "bind": {"input": "range", "min": 400, "max": 4000, "step": 50}
+    },
+    {
+      "name": "DisasterType",
+      "value": "All",
+      "bind": {
+        "input": "select",
+        "options": [
+          "All",
+          "Bushfire",
+          "Cyclone",
+          "Earthquake",
+          "Flood",
+          "Storm"
+        ]
+      }
+    }
+  ],
+  "projection": {
+    "type": "mercator",
+    "center": [134, -27],
+    "scale": {"expr": "Zoom"}
+  },
+  "layer": [
+    {
+      "data": {
+        "url": "data/au.json",
+        "format": {"type": "topojson", "feature": "au"}
+      },
+      "mark": {"type": "geoshape", "fill": "#f5f5f5", "stroke": "#9e9e9e", "strokeWidth": 0.8}
+    },
+    {
+      "data": {
+        "url": "data/disasters.csv",
+        "format": {
+          "type": "csv",
+          "parse": {
+            "Latitude": "number",
+            "Longitude": "number",
+            "Fatalities": "number",
+            "Injuries": "number",
+            "InsuredCostMillions": "number",
+            "Year": "number",
+            "Month": "number"
+          }
+        }
+      },
+      "transform": [
+        {
+          "calculate": "datum.Fatalities != null ? datum.Fatalities : (datum.Injuries != null ? datum.Injuries : (datum.InsuredCostMillions != null ? datum.InsuredCostMillions / 1000000 : 1))",
+          "as": "Impact"
+        },
+        {"filter": "isValid(datum.Latitude) && isValid(datum.Longitude)"},
+        {"filter": "isValid(datum.Impact)"},
+        {"filter": "DisasterType == 'All' || datum.DisasterType == DisasterType"}
+      ],
+      "mark": {"type": "circle", "opacity": 0.8, "stroke": "#ffffff", "strokeWidth": 0.5},
+      "encoding": {
+        "longitude": {"field": "Longitude", "type": "quantitative"},
+        "latitude": {"field": "Latitude", "type": "quantitative"},
+        "size": {
+          "field": "Impact",
+          "type": "quantitative",
+          "title": "Impact score",
+          "scale": {"range": [40, 400]}
+        },
+        "color": {"field": "DisasterType", "type": "nominal", "title": "Disaster type"},
+        "tooltip": [
+          {"field": "EventName", "type": "nominal", "title": "Event"},
+          {"field": "City", "type": "nominal"},
+          {"field": "State", "type": "nominal"},
+          {"field": "DisasterType", "type": "nominal", "title": "Type"},
+          {"field": "Year", "type": "quantitative"},
+          {"field": "Month", "type": "quantitative"},
+          {"field": "Fatalities", "type": "quantitative"},
+          {"field": "Injuries", "type": "quantitative"},
+          {"field": "InsuredCostMillions", "type": "quantitative", "title": "Insured cost (millions)"}
+        ]
+      }
+    }
+  ]
+}
